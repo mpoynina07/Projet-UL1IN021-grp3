@@ -3,9 +3,7 @@ Projet de groupe NSI Raspberry Pi + capteurs (2025)
 
 Groupe 3 :
 - Ylhan FONTAINE
-- Adam BELGHITH
 - Nina MPOY --> mpoynina07@gmail.com
-- Lucas FORERO
 - William GOUDALO
 
 Professeur :
