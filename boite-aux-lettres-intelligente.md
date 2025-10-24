@@ -5,16 +5,12 @@ boite-aux-lettres-intelligente/
 ├── raspberry/                
 
 │   ├── capteur\_ultrason.py        # presence lettre
-
-│   ├── capteur\_tilt.py            # ouverture porte + vider boite
-
+     
 │   ├── actionneurs.py             # LED + buzzer
 
 │   ├── main.py                    
 
 │   	               
-
-│
 
 ├── database/
 
@@ -34,13 +30,9 @@ boite-aux-lettres-intelligente/
 
 │   │   ├── historique.html        # page d historique 
 
-│   ├── static/
-
 │   │   ├── style.css              # design site
 
 │   
-
-│
 
 ├── tests/                    ← tests sur capteurs
 
@@ -49,6 +41,7 @@ boite-aux-lettres-intelligente/
 │
 
 ├── README.md                 ← presentation projet
+
 
 
 
