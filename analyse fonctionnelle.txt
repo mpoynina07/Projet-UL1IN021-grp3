@@ -1,0 +1,53 @@
+MailBox
+
+Concept : boîte aux lettres connectées + site web
+	--> notification lorsqu'une lettre est postée (w/date,heure,objet de la letre à remplir) + buzzer
+	--> led verte quand la boîte est vide, sinon led rouge 
+	--> l'utilisateur peut renseigner l'objet de la lettre sur le site + possibilité de rehercher une lettre via objet/date/heure
+	
+
+Capteur = UltraSonic 
+Actionneurs = Button, LEDs, Buzzer
+
+
+Scénarios :
+
+1) Le raspberry lit la donnée du capteur, selon la distance donnée elle fait allumer la led rouge (présence de courrier) ou la led verte (abscence de courrier)
+2) Le raspberry lit la donnée du capteur et envoie un enregistrement à la BdD si la distance diminue soudainement, envoyant ainsi une notification sur le site 
+3) L'utilisateur se connecte à son compte MailBox pour consulter l'état de sa SmartBox
+4) L'utilisateur se connecte à son compte MailBox pour renseigner l'objet de la lettre qu'il a reçu à une heure/date donnée, il sera automatiquement enregistrée dans la BdD
+5) L'utilisateur créer un compte MailBox
+6) L'utilisateur vide sa SmartBox puis appuie sur le bouton pour le signaler à la raspberry
+
+Fonctions
+
+F1 | Lecture de données - La rasp. lit la donnée du capteur 
+						- Capteur, rasp, LEDs, Buzzer,Écran
+						- 1
+						
+F2 | Consultater les données - L'utilisateur consulte l'état de sa MailBox
+							 - BdD, siteWeb
+							 - 1
+							 
+F3 | Créer un  compte - L'utilisateur crée son pseudo et son mot de passe
+					  - BdD, siteWeb
+					  - 2
+					  
+F4 | Se logger - L'utilisateur entre son pseudo et son mot de passe
+			   - BdD, siteWeb
+			   - 2
+			   
+F5 | Vidange de la MailBox - L'utilisateur vide sa MailBox puis appuie sur le bouton pour le signaler 
+						   - rasp, LEDs, Buzzer, Écran, siteWeb
+						   - 1
+				
+F6 | Émettre un  son - La rasp. lit la donnée du capteur et active le buzzer
+					 - rasp., Buzzer
+					 - 3
+					 
+F7 | Accéder à l'historique - L'utilisateur va dans l'historique des lettre reçu et peut rechercher des lettres 
+							- BdD, siteWeb
+							
+							
+						   
+					  
