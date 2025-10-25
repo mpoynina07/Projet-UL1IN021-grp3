@@ -6,7 +6,7 @@ boite-aux-lettres-intelligente/
 
 │   ├── capteur\_ultrason.py        # presence lettre
      
-│   ├── actionneurs.py             # LED + buzzer
+│   ├── actionneurs.py             # LED + buzzer + ecran
 
 │   ├── main.py                    
 
@@ -41,6 +41,7 @@ boite-aux-lettres-intelligente/
 │
 
 ├── README.md                 ← presentation projet
+
 
 
 
