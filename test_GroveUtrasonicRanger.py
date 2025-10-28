@@ -29,7 +29,7 @@ try :
   distance = (fin-debut)*34300/2 # (vitesse du son / 2)
   print("Distance:"+distance+"cm")
 
-  sleep(1)
+  sleep(n)
 
 
 except KeyboardInterrupt:
