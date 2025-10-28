@@ -28,7 +28,7 @@ def distance():
   while GPIO.input(ECHO) == 1 :
     fin = time.time()
   
-  return ((fin-debut)*34300)/2 # calcul de la distance w/vitesse du son
+  return (fin-debut)*34300/2 # calcul de la distance w/vitesse du son
   
   try :
     while True :
