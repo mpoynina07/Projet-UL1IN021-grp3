@@ -3,26 +3,30 @@
 import RPi.GPIO as GPIO
 import time
 
-TRIG = 23 # envoie un signal ultrasonique (broche sortie)
-ECHO = 24 # reçoit le signal réfléchi (broche entrée)
+ULTRA = 5
 
-LED_ROUGE = 27 (sortie)
+LED_ROUGE = 4 
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(TRIG, GPIO.OUT)
-GPIO.setup(ECHO, GPIO.IN)
-GPIO.setup(LED_VERTE, GPIO.OUT)
+GPIO.setup(ULTRA, GPIO.OUT)
+#GPIO.setup(LED_VERTE, GPIO.OUT)
 GPIO.setup(LED_ROUGE, GPIO.OUT)
 
 
 seuil = # en cm, à determiner
+
 def distance():
   """ renvoie la mesure de laprofondeur de la boîte depuis le ultrasonic ranger (float)
   """
-  GPIO.input(TRIG, True)
+  GPIO.output(ULTRA, 0)
+  time.sleep(0.002)
+  GPIO.output(ULTRA, 1)
   time.sleep(0.00001)  # pause de 0.00001s pour emettre ultrason
-  GPIO.input(TRIG, False)
+  GPIO.output(ULTRA, 0)
   
+  GPIO.setup(ULTRA, GPIO.IN)
+
+  debut = time.time()
   while GPIO.input(ECHO) == 0 :
     debut = time.time()
   while GPIO.input(ECHO) == 1 :
@@ -36,14 +40,16 @@ def distance():
       print("Distance:"+distance+"cm")
 
     if distance < seuil :
-      GPIO.output(LED_ROUGE, False)
+      GPIO.output(LED_ROUGE, 1)
     else:
-      GPIO.output(LED_ROUGE, True)
+      GPIO.output(LED_ROUGE, 0)
 
 # Ctrl + C pour quitter programme
 
       
 
+  
+ 
      
       
       
