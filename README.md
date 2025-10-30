@@ -15,3 +15,7 @@ Contraintes :
 - Utilisation d’un site web.
 - Interaction avec un humain via le site web et/ou un actionneur
 
+Tests opérationnels :
+- test_LedButton.py
+- test_GroveUltrasonicRanger.py
+- test_Ultrasonic_LED.py
