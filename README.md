@@ -2,7 +2,7 @@
 Projet de groupe NSI Raspberry Pi + capteurs (2025)
 
 Groupe 3 :
-- Ylhan FONTAINE
+- Ylhan FONTAINE --> fontaineylhan08@gmail.com 
 - Nina MPOY --> mpoynina07@gmail.com
 - William GOUDALO --> goudalo.william@gmail.com
 
