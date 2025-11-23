@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MailBox - Tableau de bord</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .settings-icon {
+            background: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            transition: transform 0.3s ease;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .settings-icon:hover {
+            transform: rotate(30deg);
+        }
+
+        /* Cartes */
+        .dashboard-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Statut boîte vide */
+        .status-section {
+            text-align: center;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .status-section.empty {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .status-section.has-mail {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            animation: pulse 2s infinite;
+        }
+
+        h1 {
+            font-size: 18px;
+            color: #155724;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .activity-section h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .activity-list {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3f4;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .time {
+            color: #888;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .new-mail {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .separator {
+            height: 1px;
+            background: #e1e5e9;
+            margin: 25px 0;
+        }
+
+        .history-btn {
+            width: 100%;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .history-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .dashboard-card {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: slideUp 0.6s ease forwards;
+        }
+
+        .activity-item {
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        .activity-item:nth-child(1) { animation-delay: 0.1s; }
+        .activity-item:nth-child(2) { animation-delay: 0.2s; }
+        .activity-item:nth-child(3) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header avec icône engrenage -->
+        <div class="header">
+            <div class="logo">MailBox</div>
+            <a href="settings.html" class="settings-icon">⚙️</a>
+        </div>
+
+        <!-- Carte statut boîte (VIERGE au départ) -->
+        <div class="dashboard-card status-section empty" id="statusSection">
+            <h1>✅ Boîte aux lettres vide</h1>
+            <h2>📭</h2>
+            <p style="color: #155724; margin-top: 10px; font-size: 14px;">
+                Aucun nouveau courrier
+            </p>
+        </div>
+
+        <!-- Carte d'activité récente (VIDE au départ) -->
+        <div class="dashboard-card activity-section">
+            <h3>Activité récente</h3>
+            
+            <ul class="activity-list" id="activityList">
+                <!-- Les activités s'ajouteront ici dynamiquement -->
+                <li class="activity-item" id="emptyState">
+                    <span style="color: #888; font-style: italic;">
+                        Aucune activité récente
+                    </span>
+                </li>
+            </ul> 
+
+            <!-- Séparateur -->
+            <div class="separator"></div>
+
+            <!-- Bouton historique -->
+            <button class="history-btn" onclick="window.location.href='history.html'">
+                Afficher l'historique complet
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            MailBox.fr
+        </div>
+    </div>
+
+    <script>
+        // Données simulées - À REMPLACER par les vraies données du Raspberry Pi
+        let activities = [];
+        let hasNewMail = false;
+
+        // Fonction pour ajouter un nouveau courrier (simulation)
+        function addNewMail() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('fr-FR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            const newActivity = {
+                time: timeString,
+                message: 'Nouveau courrier détecté',
+                isNew: true
+            };
+            
+            activities.unshift(newActivity); // Ajouter au début
+            hasNewMail = true;
+            updateDisplay();
+        }
+
+        // Fonction pour vider la boîte (simulation)
+        function emptyMailbox() {
+            hasNewMail = false;
+            updateDisplay();
+        }
+
+        // Mettre à jour l'affichage
+        function updateDisplay() {
+            const statusSection = document.getElementById('statusSection');
+            const activityList = document.getElementById('activityList');
+            const emptyState = document.getElementById('emptyState');
+            
+            // Mettre à jour le statut
+            if (hasNewMail) {
+                statusSection.className = 'dashboard-card status-section has-mail';
+                statusSection.innerHTML = `
+                    <h1>🚨 Courrier à récupérer !</h1>
+                    <h2>📬</h2>
+                    <p style="color: #856404; margin-top: 10px; font-size: 14px;">
+                        Nouveau courrier détecté
+                    </p>
+                    <button onclick="emptyMailbox()" style="
+                        margin-top: 10px;
+                        background: #28a745;
+                        color: white;
+                        border: none;
+                        padding: 8px 15px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 12px;
+                    ">Boîte vidée</button>
+                `;
+            } else {
+                statusSection.className = 'dashboard-card status-section empty';
+                statusSection.innerHTML = `
+                    <h1>✅ Boîte aux lettres vide</h1>
+                    <h2>📭</h2>
+                    <p style="color: #155724; margin-top: 10px; font-size: 14px;">
+                        Aucun nouveau courrier
+                    </p>
+                `;
+            }
+            
+            // Mettre à jour la liste d'activités
+            if (activities.length > 0) {
+                if (emptyState) emptyState.remove();
+                
+                activityList.innerHTML = activities.map(activity => `
+                    <li class="activity-item ${activity.isNew ? 'new-mail' : ''}">
+                        <span class="time">${activity.time}</span>
+                        ${activity.message}
+                    </li>
+                `).join('');
+            }
+        }
+
+        // Simulation : Ajouter un courrier toutes les 30 secondes (pour test)
+        // setInterval(addNewMail, 30000);
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDisplay();
+            
+            // Pour tester : décommentez la ligne ci-dessous pour simuler un courrier
+            // setTimeout(addNewMail, 2000);
+        });
+    </script>
+</body>
+</html>
