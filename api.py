@@ -65,3 +65,45 @@ async def api_vider_mailbox(id_mailbox: int):
 async def init_database():
     init_BDD()
     return {"status": "OK", "message": "Base de données initialisée."}
+
+@app.put("/utilisateur/changer_mdp/{nom_utilisateur}")
+async def api_changer_mdp(nom_utilisateur: str, mdp: dict):
+    # Récupère les mots de passe
+    ancien_mdp = mdp['ancien_mdp']
+    nouveau_mdp = mdp['nouveau_mdp']
+
+    # Vérifie que l'ancien mot de passe est correct
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT mot_de_passe FROM Utilisateur WHERE nom_utilisateur = ?
+    """, (nom_utilisateur,))
+    result = cursor.fetchone()
+
+    if result is None or result[0] != ancien_mdp:
+        return {"status": "ERROR", "message": "L'ancien mot de passe est incorrect."}
+
+    # Met à jour le mot de passe
+    cursor.execute("""
+        UPDATE Utilisateur SET mot_de_passe = ? WHERE nom_utilisateur = ?
+    """, (nouveau_mdp, nom_utilisateur))
+
+    conn.commit()
+    conn.close()
+
+    return {"status": "OK", "message": "Mot de passe modifié avec succès."}
+
+@app.delete("/utilisateur/supprimer/{nom_utilisateur}")
+async def api_supprimer_utilisateur(nom_utilisateur: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        DELETE FROM Utilisateur WHERE nom_utilisateur = ?
+    """, (nom_utilisateur,))
+
+    conn.commit()
+    conn.close()
+
+    return {"status": "OK", "message": f"Utilisateur {nom_utilisateur} supprimé."}
