@@ -227,7 +227,6 @@
             <h3>Activité récente</h3>
             
             <ul class="activity-list" id="activityList">
-                <!-- Les activités s'ajouteront ici dynamiquement -->
                 <li class="activity-item" id="emptyState">
                     <span style="color: #888; font-style: italic;">
                         Aucune activité récente
@@ -235,7 +234,6 @@
                 </li>
             </ul> 
 
-            <!-- Séparateur -->
             <div class="separator"></div>
 
             <!-- Bouton historique -->
@@ -244,50 +242,51 @@
             </button>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             MailBox.fr
         </div>
     </div>
 
     <script>
-        // Données simulées - À REMPLACER par les vraies données du Raspberry Pi
-        let activities = [];
-        let hasNewMail = false;
+        const mailboxId = 1; // ID de la boîte aux lettres, à ajuster
 
-        // Fonction pour ajouter un nouveau courrier (simulation)
-        function addNewMail() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('fr-FR', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-            
-            const newActivity = {
-                time: timeString,
-                message: 'Nouveau courrier détecté',
-                isNew: true
-            };
-            
-            activities.unshift(newActivity); // Ajouter au début
-            hasNewMail = true;
+        // Fonction pour récupérer l'état de la boîte aux lettres
+        async function getMailboxStatus() {
+            const response = await fetch(`http://127.0.0.1:8000/mailbox/etat/${mailboxId}`);
+            const data = await response.json();
+            return data.etat;
+        }
+
+        // Fonction pour vider la boîte aux lettres
+        async function emptyMailbox() {
+            await fetch(`http://127.0.0.1:8000/mailbox/vider/${mailboxId}`, { method: 'POST' });
             updateDisplay();
         }
 
-        // Fonction pour vider la boîte (simulation)
-        function emptyMailbox() {
-            hasNewMail = false;
+        // Fonction pour ajouter un nouveau courrier
+        async function addNewMail() {
+            const response = await fetch(`http://127.0.0.1:8000/courrier/nouveau`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id_mailbox: mailboxId, objet: 'Nouveau courrier' })
+            });
+            const data = await response.json();
+            console.log('Courrier ajouté:', data);
             updateDisplay();
         }
 
         // Mettre à jour l'affichage
-        function updateDisplay() {
+        async function updateDisplay() {
             const statusSection = document.getElementById('statusSection');
             const activityList = document.getElementById('activityList');
             const emptyState = document.getElementById('emptyState');
-            
-            // Mettre à jour le statut
-            if (hasNewMail) {
+
+            // Vérification de l'état de la boîte aux lettres
+            const etat = await getMailboxStatus();
+
+            if (etat === 1) {
                 statusSection.className = 'dashboard-card status-section has-mail';
                 statusSection.innerHTML = `
                     <h1>🚨 Courrier à récupérer !</h1>
@@ -316,29 +315,34 @@
                     </p>
                 `;
             }
-            
-            // Mettre à jour la liste d'activités
-            if (activities.length > 0) {
-                if (emptyState) emptyState.remove();
-                
-                activityList.innerHTML = activities.map(activity => `
-                    <li class="activity-item ${activity.isNew ? 'new-mail' : ''}">
-                        <span class="time">${activity.time}</span>
-                        ${activity.message}
+
+            // Mettre à jour l'activité (ici, on simule un nouveau courrier)
+            if (etat === 1) {
+                const newActivity = {
+                    time: new Date().toLocaleTimeString(),
+                    message: 'Nouveau courrier détecté',
+                    isNew: true
+                };
+                activityList.innerHTML = `
+                    <li class="activity-item new-mail">
+                        <span class="time">${newActivity.time}</span>
+                        ${newActivity.message}
                     </li>
-                `).join('');
+                `;
+            } else {
+                activityList.innerHTML = `
+                    <li class="activity-item">
+                        <span style="color: #888; font-style: italic;">
+                            Aucune activité récente
+                        </span>
+                    </li>
+                `;
             }
         }
 
-        // Simulation : Ajouter un courrier toutes les 30 secondes (pour test)
-        // setInterval(addNewMail, 30000);
-
-        // Initialisation
+        // Initialisation de la page
         document.addEventListener('DOMContentLoaded', function() {
             updateDisplay();
-            
-            // Pour tester : décommentez la ligne ci-dessous pour simuler un courrier
-            // setTimeout(addNewMail, 2000);
         });
     </script>
 </body>
