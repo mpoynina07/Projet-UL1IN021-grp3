@@ -157,7 +157,6 @@
                     <input type="password" id="confirm-password" required minlength="6">
                 </div>
 
-                <!-- Séparateur -->
                 <div class="separator"></div>
 
                 <button type="submit" class="submit-btn" id="submitBtn">
@@ -168,7 +167,19 @@
     </div>
 
     <script>
-        document.querySelector('.password-form').addEventListener('submit', function(e) {
+        // Fonction pour changer le mot de passe via l'API
+        async function changePassword(newPassword) {
+            const response = await fetch("http://127.0.0.1:8000/utilisateur/changer_mot_de_passe", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ mot_de_passe: newPassword })
+            });
+            return response.json();
+        }
+
+        document.querySelector('.password-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const newPassword = document.getElementById('new-password').value;
@@ -189,11 +200,16 @@
             // Simulation de changement
             submitBtn.textContent = 'Modification...';
             submitBtn.disabled = true;
+
+            // Appel API pour modifier le mot de passe
+            const result = await changePassword(newPassword);
             
-            setTimeout(() => {
+            if (result.status === 'OK') {
                 alert('Mot de passe modifié avec succès !');
                 window.location.href = 'settings.html';
-            }, 1500);
+            } else {
+                alert('Erreur lors de la modification du mot de passe');
+            }
         });
 
         // Animation d'entrée
