@@ -228,7 +228,7 @@
             <h1>Historique</h1>
 
             <!-- État vide -->
-            <div class="empty-state">
+            <div class="empty-state" id="emptyState">
                 <div class="empty-icon">📭</div>
                 <div class="empty-text">Aucun courrier dans l'historique</div>
             </div>
@@ -267,70 +267,94 @@
                 </div>
             </div>
 
-            <button class="search-btn" onclick="performSearch()">
-                Rechercher
-            </button>
+            <button class="search-btn" onclick="performSearch()">Rechercher</button>
         </div>
     </div>
 
     <script>
-        // Gestion de la recherche
+        const mailboxId = 1; // ID de la boîte aux lettres
+
+        // Fonction pour récupérer l'historique des courriers
+        async function getHistorique() {
+            const response = await fetch(`http://127.0.0.1:8000/courrier/historique/${mailboxId}`);
+            const data = await response.json();
+            return data.historique;
+        }
+
+        // Fonction pour effectuer une recherche d'historique
+        async function searchCourrier(objet, dateFrom, dateTo) {
+            const url = new URL("http://127.0.0.1:8000/courrier/rechercher");
+            const params = {
+                id_mailbox: mailboxId,
+                mot_cle: objet
+            };
+            if (dateFrom) params.date_from = dateFrom;
+            if (dateTo) params.date_to = dateTo;
+
+            url.search = new URLSearchParams(params).toString();
+
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.resultats;
+        }
+
+        // Mettre à jour l'affichage avec l'historique
+        async function updateHistorique() {
+            const historique = await getHistorique();
+            const emptyState = document.getElementById('emptyState');
+
+            if (historique.length === 0) {
+                emptyState.innerHTML = `
+                    <div class="empty-icon">📭</div>
+                    <div class="empty-text">Aucun courrier dans l'historique</div>
+                `;
+            } else {
+                const list = historique.map(item => `
+                    <li class="activity-item">
+                        <span class="time">${item[2]}</span>
+                        <span>${item[1] || '(non renseigné)'}</span>
+                    </li>
+                `).join('');
+                document.querySelector('.activity-list').innerHTML = list;
+            }
+        }
+
+        // Gérer la recherche de courrier
+        async function performSearch() {
+            const searchObject = document.getElementById('search-object').value;
+            const dateFrom = document.querySelector('.date-range input:nth-child(1)').value;
+            const dateTo = document.querySelector('.date-range input:nth-child(2)').value;
+
+            const resultats = await searchCourrier(searchObject, dateFrom, dateTo);
+
+            if (resultats.length > 0) {
+                const list = resultats.map(item => `
+                    <li class="activity-item">
+                        <span class="time">${item[2]}</span>
+                        ${item[1] || '(non renseigné)'}
+                    </li>
+                `).join('');
+                document.querySelector('.activity-list').innerHTML = list;
+            } else {
+                alert('Aucun résultat trouvé');
+            }
+            closeSearch();
+        }
+
+        // Afficher la recherche
         function openSearch() {
             document.getElementById('searchOverlay').style.display = 'flex';
         }
 
+        // Fermer la recherche
         function closeSearch() {
             document.getElementById('searchOverlay').style.display = 'none';
         }
 
-        function performSearch() {
-            const searchObject = document.getElementById('search-object').value;
-            const dateFrom = document.querySelector('.date-range input:nth-child(1)').value;
-            const dateTo = document.querySelector('.date-range input:nth-child(2)').value;
-            
-            // Simulation de recherche
-            console.log('Recherche :', {
-                objet: searchObject,
-                dateDebut: dateFrom,
-                dateFin: dateTo
-            });
-            
-            alert('Recherche effectuée (simulation)');
-            closeSearch();
-            
-            // Ici vous pourrez appeler votre API pour les résultats réels
-            // fetch(`/api/search?objet=${searchObject}&from=${dateFrom}&to=${dateTo}`)
-        }
-
-        // Fermer la recherche en cliquant à l'extérieur
-        document.getElementById('searchOverlay').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeSearch();
-            }
-        });
-
-        // Animation d'entrée
+        // Initialisation de la page
         document.addEventListener('DOMContentLoaded', function() {
-            const card = document.querySelector('.history-card');
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(30px)';
-            
-            setTimeout(() => {
-                card.style.transition = 'all 0.6s ease';
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, 100);
+            updateHistorique();
         });
-
-        // Exemple de données pour plus tard (à décommenter quand vous voulez tester avec des données)
-        /*
-        const sampleData = [
-            { date: "13-02", time: "17h32", objet: "objet" },
-            { date: "13-02", time: "14h09", objet: "objet" },
-            { date: "11-02", time: "09h43", objet: "Amende" },
-            { date: "09-02", time: "10h42", objet: "Assurance" }
-        ];
-        */
     </script>
 </body>
 </html>
