@@ -11,7 +11,7 @@ import os
 import uvicorn
 
 app = FastAPI(
-    title="Smart MailBox API",
+    title="MailBox API",
     description="API pour la boîte aux lettres intelligente",
     version="1.0.0"
 )
@@ -43,7 +43,7 @@ class SearchFilters(BaseModel):
     date_to: Optional[str] = None
 
 # ==================== CONFIGURATION GPIO ====================
-ULTRA = 5        # Pin pour trigger/echo
+ULTRA = 5        # Pin pour echo
 BUZZER = 24      # Pin buzzer
 LED_ROUGE = 22   # Pin LED rouge
 LED_VERTE = 27   # Pin LED verte
