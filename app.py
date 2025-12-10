@@ -545,7 +545,6 @@ if __name__ == "__main__":
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-# ... votre code existant ...
 
 # Servir les fichiers statiques (HTML, CSS, JS)
 app.mount("/static", StaticFiles(directory="static"), name="static")
