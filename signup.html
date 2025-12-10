@@ -139,11 +139,9 @@
 <body>
     <div class="signup-container">
         <div class="signup-card">
-            <!-- Titres -->
             <h1>S'inscrire</h1>
             <div class="logo">MailBox</div>
             
-            <!-- Formulaire -->
             <form class="signup-form">
                 <div class="input-group">
                     <label for="username">Nom d'utilisateur</label>
@@ -165,13 +163,11 @@
                     <input type="password" id="confirm-password" required>
                 </div>
                 
-                <!-- Séparateur -->
                 <div class="separator"></div>
                 
                 <button type="submit" class="signup-btn">Créer mon compte</button>
             </form>
             
-            <!-- Lien vers connexion -->
             <div class="links">
                 <p>Déjà inscrit ? <a href="login.html">Connectez-vous</a></p>
             </div>
@@ -179,8 +175,20 @@
     </div>
 
     <script>
+        // Fonction pour créer un utilisateur via l'API
+        async function createUser(username, email, password) {
+            const response = await fetch("http://127.0.0.1:8000/utilisateur/ajouter", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ nom: username, email: email, mot_de_passe: password })
+            });
+            return response.json();
+        }
+
         // Gestion de la soumission du formulaire
-        document.querySelector('.signup-form').addEventListener('submit', function(e) {
+        document.querySelector('.signup-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const username = document.getElementById('username').value;
@@ -209,11 +217,17 @@
             btn.textContent = 'Création du compte...';
             btn.disabled = true;
             
-            // Redirection après inscription
-            setTimeout(() => {
+            // Appel API pour créer un utilisateur
+            const result = await createUser(username, email, password);
+            
+            if (result.status === 'OK') {
                 alert('Compte créé avec succès !');
                 window.location.href = 'login.html';
-            }, 1500);
+            } else {
+                alert('Erreur lors de la création du compte');
+                btn.textContent = 'Créer mon compte';
+                btn.disabled = false;
+            }
         });
 
         // Animation d'entrée
