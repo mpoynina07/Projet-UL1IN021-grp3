@@ -542,3 +542,36 @@ def start_server():
 
 if __name__ == "__main__":
     start_server()
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# ... votre code existant ...
+
+# Servir les fichiers statiques (HTML, CSS, JS)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Route pour la page d'accueil (login)
+@app.get("/")
+async def serve_login():
+    return FileResponse("static/login.html")
+
+# Routes pour les autres pages
+@app.get("/dashboard")
+async def serve_dashboard():
+    return FileResponse("static/dashboard.html")
+
+@app.get("/history")
+async def serve_history():
+    return FileResponse("static/history.html")
+
+@app.get("/signup")
+async def serve_signup():
+    return FileResponse("static/signup.html")
+
+@app.get("/settings")
+async def serve_settings():
+    return FileResponse("static/settings.html")
+
+@app.get("/updatepwd")
+async def serve_updatepwd():
+    return FileResponse("static/updatepwd.html")
