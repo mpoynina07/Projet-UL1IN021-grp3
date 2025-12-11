@@ -1,73 +1,90 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
-from typing import List
-import BDD  # Assure-toi d'avoir le fichier BDD.py pour les interactions avec la base de données
+import bcrypt
+import os
+import sqlite3
+from config import USER_CREDENTIALS, DATABASE_URL
 
 app = FastAPI()
 
-# Initialisation de la base de données à chaque démarrage
-@app.on_event("startup")
-def startup_event():
-    BDD.init_BDD()
+# Rediriger vers la page de connexion lorsque l'on ouvre le projet
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/login")
+
+# Fonction pour connecter à la base de données
+def get_db():
+    conn = sqlite3.connect(DATABASE_URL.split(":///")[1])  # Récupère le chemin du fichier .db
+    return conn
+
+# Fonction pour ajouter un utilisateur dans la base de données
+def add_user_to_db(username: str, password: str):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO utilisateurs (username, password) VALUES (?, ?)", 
+        (username, password)
+    )
+    conn.commit()
+    conn.close()
 
 # Modèle Pydantic pour l'utilisateur
 class UserCreate(BaseModel):
-    nom: str
-    email: str
-    mot_de_passe: str
+    username: str
+    password: str
 
-class CourrierCreate(BaseModel):
-    id_mailbox: int
-    objet: str
+# Route pour l'inscription d'un utilisateur
+@app.post("/signup")
+async def signup(user: UserCreate):
+    # Vérifier si l'utilisateur existe déjà
+    if user.username in USER_CREDENTIALS:
+        raise HTTPException(status_code=400, detail="Username already taken")
 
-class CourrierSearch(BaseModel):
-    mot_cle: str
-    date_from: str = None
-    date_to: str = None
+    # Ajouter le nouvel utilisateur à la base de données
+    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    add_user_to_db(user.username, hashed_password)
 
-# Route pour créer un utilisateur
-@app.post("/utilisateur/ajouter")
-async def create_user(user: UserCreate):
-    try:
-        BDD.ajouter_utilisateur(user.nom, user.email, user.mot_de_passe)
-        return {"status": "OK", "message": f"Utilisateur {user.nom} ajouté."}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # Ajouter le nouvel utilisateur à USER_CREDENTIALS (en mémoire)
+    USER_CREDENTIALS[user.username] = {
+        'username': user.username,
+        'password': hashed_password
+    }
 
-# Route pour récupérer l'état de la boîte
-@app.get("/mailbox/etat/{id_mailbox}")
-async def get_mailbox_status(id_mailbox: int):
-    etat = BDD.get_etat_mailbox(id_mailbox)
-    return {"etat": etat}
+    return {"message": f"User {user.username} created successfully"}
 
-# Route pour ajouter un courrier
-@app.post("/courrier/nouveau")
-async def add_new_courrier(courrier: CourrierCreate):
-    try:
-        BDD.nouveau_courrier(courrier.id_mailbox, courrier.objet)
-        return {"status": "OK", "message": "Nouveau courrier ajouté."}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# Fonction de vérification du mot de passe
+def check_password(hashed_password: str, password: str) -> bool:
+    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
 
-# Route pour récupérer l'historique des courriers
-@app.get("/courrier/historique/{id_mailbox}")
-async def get_mailbox_history(id_mailbox: int):
-    historique = BDD.historique_courrier(id_mailbox)
-    return {"historique": historique}
+# Route pour la connexion des utilisateurs
+@app.post("/login")
+async def login(username: str, password: str):
+    if username not in USER_CREDENTIALS:
+        raise HTTPException(status_code=400, detail="Username not found")
 
-# Route pour rechercher un courrier
-@app.post("/courrier/rechercher")
-async def search_courrier(search: CourrierSearch):
-    resultats = BDD.rechercher_courrier(search.mot_cle, search.date_from, search.date_to)
-    return {"resultats": resultats}
+    # Vérifier si le mot de passe est correct
+    stored_password = USER_CREDENTIALS[username]["password"]
+    if not check_password(stored_password, password):
+        raise HTTPException(status_code=400, detail="Incorrect password")
 
-# Route pour changer le mot de passe de l'utilisateur
-@app.post("/utilisateur/changer_mot_de_passe")
-async def change_password(mot_de_passe: str):
-    try:
-        # Assurez-vous de lier cette action à un utilisateur authentifié
-        # Exemple: BDD.changer_mot_de_passe_utilisateur(user_id, mot_de_passe)
-        BDD.changer_mot_de_passe_utilisateur(mot_de_passe)
-        return {"status": "OK", "message": "Mot de passe modifié avec succès."}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return {"message": f"User {username} logged in successfully"}
+
+# Créer une table pour les utilisateurs si elle n'existe pas
+@app.on_event("startup")
+def startup_event():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS utilisateurs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        password TEXT NOT NULL
+    )
+    """)
+    conn.commit()
+    conn.close()
+
+    # Ajouter les utilisateurs initiaux à la base de données
+    for username, credentials in USER_CREDENTIALS.items():
+        add_user_to_db(credentials["username"], credentials["password"])
