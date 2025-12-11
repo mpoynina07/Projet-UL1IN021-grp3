@@ -1,90 +1,114 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
 from pydantic import BaseModel
-import bcrypt
 import os
-import sqlite3
-from config import USER_CREDENTIALS, DATABASE_URL
+import BDD  # Assure-toi d'avoir ton fichier BDD.py pour les interactions avec la base de données
 
 app = FastAPI()
 
-# Rediriger vers la page de connexion lorsque l'on ouvre le projet
+# Utiliser le chemin absolu pour accéder au dossier templates
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "../templates"))
+
+# Initialisation de la base de données à chaque démarrage
+@app.on_event("startup")
+def startup_event():
+    BDD.init_BDD()
+
+# Modèle Pydantic pour l'utilisateur
+class UserCreate(BaseModel):
+    nom: str
+    email: str
+    mot_de_passe: str
+
+# Modèle Pydantic pour la connexion (login)
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class CourrierCreate(BaseModel):
+    id_mailbox: int
+    objet: str
+
+class CourrierSearch(BaseModel):
+    mot_cle: str
+    date_from: str = None
+    date_to: str = None
+
+# Rediriger vers la page de connexion lors de l'ouverture du projet
 @app.get("/")
 async def root():
     return RedirectResponse(url="/login")
 
-# Fonction pour connecter à la base de données
-def get_db():
-    conn = sqlite3.connect(DATABASE_URL.split(":///")[1])  # Récupère le chemin du fichier .db
-    return conn
+# Route pour servir la page de connexion
+@app.get("/login")
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 
-# Fonction pour ajouter un utilisateur dans la base de données
-def add_user_to_db(username: str, password: str):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO utilisateurs (username, password) VALUES (?, ?)", 
-        (username, password)
-    )
-    conn.commit()
-    conn.close()
-
-# Modèle Pydantic pour l'utilisateur
-class UserCreate(BaseModel):
-    username: str
-    password: str
-
-# Route pour l'inscription d'un utilisateur
-@app.post("/signup")
-async def signup(user: UserCreate):
-    # Vérifier si l'utilisateur existe déjà
-    if user.username in USER_CREDENTIALS:
-        raise HTTPException(status_code=400, detail="Username already taken")
-
-    # Ajouter le nouvel utilisateur à la base de données
-    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    add_user_to_db(user.username, hashed_password)
-
-    # Ajouter le nouvel utilisateur à USER_CREDENTIALS (en mémoire)
-    USER_CREDENTIALS[user.username] = {
-        'username': user.username,
-        'password': hashed_password
-    }
-
-    return {"message": f"User {user.username} created successfully"}
-
-# Fonction de vérification du mot de passe
-def check_password(hashed_password: str, password: str) -> bool:
-    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
-
-# Route pour la connexion des utilisateurs
+# Route pour gérer la soumission du formulaire de connexion (POST)
 @app.post("/login")
-async def login(username: str, password: str):
-    if username not in USER_CREDENTIALS:
-        raise HTTPException(status_code=400, detail="Username not found")
+async def login_user(request: Request, login_data: LoginRequest):
+    username = login_data.username
+    password = login_data.password
+    
+    # Logique pour valider les identifiants utilisateur (ex: avec la base de données)
+    # Pour l'instant, on simule une connexion réussie
+    return {"status": "OK", "message": f"Utilisateur {username} connecté avec succès."}
 
-    # Vérifier si le mot de passe est correct
-    stored_password = USER_CREDENTIALS[username]["password"]
-    if not check_password(stored_password, password):
-        raise HTTPException(status_code=400, detail="Incorrect password")
+# Route pour la page d'inscription
+@app.get("/signup")
+async def signup_page(request: Request):
+    return templates.TemplateResponse("signup.html", {"request": request})
 
-    return {"message": f"User {username} logged in successfully"}
+# Route pour créer un utilisateur
+@app.post("/utilisateur/ajouter")
+async def create_user(user: UserCreate):
+    try:
+        # Ajouter l'utilisateur à la base de données
+        BDD.ajouter_utilisateur(user.nom, user.email, user.mot_de_passe)
+        return {"status": "OK", "message": f"Utilisateur {user.nom} ajouté."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-# Créer une table pour les utilisateurs si elle n'existe pas
-@app.on_event("startup")
-def startup_event():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS utilisateurs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL,
-        password TEXT NOT NULL
-    )
-    """)
-    conn.commit()
-    conn.close()
+# Route pour récupérer l'état de la boîte aux lettres
+@app.get("/mailbox/etat/{id_mailbox}")
+async def get_mailbox_status(id_mailbox: int):
+    etat = BDD.get_etat_mailbox(id_mailbox)
+    return {"etat": etat}
 
-    # Ajouter les utilisateurs initiaux à la base de données
-    for username, credentials in USER_CREDENTIALS.items():
-        add_user_to_db(credentials["username"], credentials["password"])
+# Route pour ajouter un courrier
+@app.post("/courrier/nouveau")
+async def add_new_courrier(courrier: CourrierCreate):
+    try:
+        BDD.nouveau_courrier(courrier.id_mailbox, courrier.objet)
+        return {"status": "OK", "message": "Nouveau courrier ajouté."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# Route pour récupérer l'historique des courriers
+@app.get("/courrier/historique/{id_mailbox}")
+async def get_mailbox_history(id_mailbox: int):
+    historique = BDD.historique_courrier(id_mailbox)
+    return {"historique": historique}
+
+# Route pour rechercher un courrier
+@app.post("/courrier/rechercher")
+async def search_courrier(search: CourrierSearch):
+    resultats = BDD.rechercher_courrier(search.mot_cle, search.date_from, search.date_to)
+    return {"resultats": resultats}
+
+# Route pour changer le mot de passe de l'utilisateur
+@app.post("/utilisateur/changer_mot_de_passe")
+async def change_password(mot_de_passe: str):
+    try:
+        # Assurez-vous de lier cette action à un utilisateur authentifié
+        BDD.changer_mot_de_passe_utilisateur(mot_de_passe)
+        return {"status": "OK", "message": "Mot de passe modifié avec succès."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# Route pour servir la page du tableau de bord
+@app.get("/dashboard")
+async def dashboard_page(request: Request):
+    return templates.TemplateResponse("dashboard.html", {"request": request})
