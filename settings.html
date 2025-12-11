@@ -194,7 +194,7 @@
     <div class="settings-container">
         <!-- Header -->
         <div class="header">
-            <a href="dashboard.html" class="back-btn">←</a>
+            <a href="/dashboard" class="back-btn">←</a>
             <div class="page-title">Réglages</div>
         </div>
 
@@ -217,12 +217,12 @@
             <div style="height: 1px; background: #e1e5e9; margin: 20px 0;"></div>
 
             <!-- Changer mot de passe -->
-            <a href="updatepwd.html" class="btn-setting">
+            <a href="/updatepwd" class="btn-setting">
                 Changer mon mot de passe
             </a>
 
             <!-- À propos -->
-            <a href="apropos.html" class="btn-setting">
+            <a href="/apropos" class="btn-setting">
                 À propos de cette application
             </a>
 
@@ -236,7 +236,7 @@
             <div style="height: 1px; background: #e1e5e9; margin: 20px 0;"></div>
 
             <!-- Supprimer compte -->
-            <a href="login.html" class="btn-setting btn-danger" onclick="return confirmDelete()">
+            <a href="/login" class="btn-setting btn-danger" onclick="return confirmDelete()">
                 Supprimer mon compte
             </a>
         </div>
@@ -256,7 +256,7 @@
                 .then(response => response.json())
                 .then(data => {
                     alert(data.message);  // Affiche le message de retour de l'API
-                    window.location.href = 'login.html';  // Redirige vers la page de connexion
+                    window.location.href = '/login';  // Redirige vers la page de connexion
                 })
                 .catch(error => {
                     console.error('Erreur:', error);
