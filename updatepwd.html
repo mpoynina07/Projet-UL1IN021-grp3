@@ -138,7 +138,7 @@
     <div class="password-container">
         <!-- Header -->
         <div class="header">
-            <a href="settings.html" class="back-btn">←</a>
+            <a href="/settings" class="back-btn">←</a>
             <div class="page-title">Changer mot de passe</div>
         </div>
 
@@ -206,7 +206,7 @@
             
             if (result.status === 'OK') {
                 alert('Mot de passe modifié avec succès !');
-                window.location.href = 'settings.html';
+                window.location.href = '/settings';
             } else {
                 alert('Erreur lors de la modification du mot de passe');
             }
