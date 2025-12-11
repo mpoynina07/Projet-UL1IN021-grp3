@@ -132,25 +132,31 @@
 <body>
     <div class="login-container">
         <div class="login-card">
+            <!-- Logo -->
             <div class="logo">MailBox</div>
+            
+            <!-- Titres -->
             <h1>Se connecter à votre compte</h1>
             
-            <form class="login-form">
+            <!-- Formulaire -->
+            <form action="/login" method="post">
                 <div class="input-group">
                     <label for="username">Nom d'utilisateur</label>
-                    <input type="text" id="username" required>
+                    <input type="text" id="username" name="username" required>
                 </div>
                 
                 <div class="input-group">
                     <label for="password">Mot de passe</label>
-                    <input type="password" id="password" required>
+                    <input type="password" id="password" name="password" required>
                 </div>
                 
                 <button type="submit" class="login-btn">Se connecter</button>
             </form>
             
+            <!-- Lien création compte -->
             <div class="links">
-                <p>Pas encore de compte ? <a href="signup.html">Inscrivez-vous</a></p>
+                <p>Pas encore de compte ? <a href="/signup">Inscrivez-vous</a>
+</p>
             </div>
         </div>
     </div>
@@ -169,33 +175,25 @@
             return data;  // On retourne la réponse de l'API
         }
 
+
         // Gestion de la soumission du formulaire
-        document.querySelector('.login-form').addEventListener('submit', async function(e) {
+        document.querySelector('.login-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
+            // Simulation de connexion
             if (username && password) {
-                // Effet de chargement sur le bouton
+                // Ajout d'un effet de chargement sur le bouton
                 const btn = document.querySelector('.login-btn');
                 btn.textContent = 'Connexion...';
                 btn.disabled = true;
                 
-                // Appel à l'API pour vérifier les informations de connexion
-                const result = await login(username, password);
-                
-                if (result.status === 'OK') {
-                    // Redirection vers le tableau de bord si la connexion est réussie
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1000);
-                } else {
-                    // Si erreur de connexion, afficher un message
-                    alert('Nom d\'utilisateur ou mot de passe incorrect');
-                    btn.textContent = 'Se connecter';
-                    btn.disabled = false;
-                }
+                // Redirection après un délai
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1000);
             } else {
                 alert('Veuillez remplir tous les champs');
             }
