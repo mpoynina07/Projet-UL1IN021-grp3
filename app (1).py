@@ -330,7 +330,7 @@ def get_initial_status():
 # 🚨 Mise à jour de la variable globale au démarrage
 # Ceci permet de reprendre l'état en cas de redémarrage du serveur !
 courrier_present = get_initial_status()
-print(
+print(f"Statut initial de la boîte (lu de la BDD): Courrier {'présent' if courrier_present else 'absent'}")
 # ==================== ROUTES API ====================
 @app.get("/api/health")
 async def health_check():
