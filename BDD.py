@@ -116,6 +116,53 @@ def get_etat_mailbox(id_mailbox):
 def vider_mailbox(id_mailbox):
     """Marque la boîte comme vide (etat = 0)."""
     set_etat_mailbox(id_mailbox, 0)
+# BDD.py (À ajouter ou insérer)
+
+def ajouter_courrier(id_mailbox, objet: str = None):
+    """
+    1. Ajoute un nouvel enregistrement de courrier dans la table Courrier.
+    2. Met à jour l'état de la Mailbox associée à PLEIN (1).
+
+    Args:
+        id_mailbox (int): L'ID de la boîte aux lettres à mettre à jour (doit être 1).
+        objet (str, optional): Description optionnelle du courrier.
+    
+    Returns:
+        int: L'ID du nouveau courrier inséré.
+    """
+    conn = get_connection() # 🚨 Utilise la fonction de connexion correcte
+    cursor = conn.cursor()
+    
+    try:
+        heure = datetime.now().isoformat()
+        
+        # 1. Insertion du nouvel enregistrement de courrier
+        cursor.execute("""
+            INSERT INTO Courrier (objet, heure_arrivee)
+            VALUES (?, ?)
+        """, (objet, heure))
+        
+        courrier_id = cursor.lastrowid
+        
+        # 2. Mise à jour de la table Mailbox: etat = 1 (plein) et lien vers le nouveau courrier
+        cursor.execute("""
+            UPDATE Mailbox 
+            SET etat = 1, id_courrier = ?
+            WHERE id_Mailbox = ?
+        """, (courrier_id, id_mailbox))
+        
+        conn.commit()
+        
+        return courrier_id
+        
+    except Exception as e:
+        print(f"Erreur d'insertion du courrier dans la BDD: {e}")
+        # Annulation de la transaction en cas d'erreur
+        conn.rollback() 
+        raise 
+        
+    finally:
+        conn.close()
     # L'API utilisera cette fonction pour vider la boîte.
 # ==================== EXÉCUTION ====================
 if __name__ == "__main__":
