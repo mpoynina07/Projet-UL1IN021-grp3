@@ -214,62 +214,6 @@ def update_leds():
         else:
             GPIO.output(LED_ROUGE, 0)   # Rouge éteint
             GPIO.output(LED_VERTE, 1)   # Verte allumé
-
-def check_capteur():
-    """Vérifie le capteur et détecte les nouveaux courriers"""
-    global courrier_present
-    
-    distance = mesure_distance()
-    
-    # 🚨 DÉBOGAGE : Affiche la distance lue par le capteur
-    if distance is not None:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Distance mesurée: {distance} cm. Seuil: {seuil} cm.")
-    else:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Erreur de mesure de distance.")
-    # FIN DÉBOGAGE
-    
-    if distance is None:
-        return
-    
-    # Détection nouveau courrier
-    if distance < seuil and not courrier_present:
-        # ... (le reste du code est correct : lock, update_leds, buzzer, save_new_mail)
-        with lock:
-            courrier_present = True
-            update_leds()
-            
-            # Activer le buzzer
-            GPIO.output(BUZZER, 1)
-            time.sleep(n)
-            GPIO.output(BUZZER, 0)
-            
-            print("Nouveau courrier détecté et enregistré !")
-            
-            # Sauvegarder dans la BDD
-            save_new_mail()
-
-def check_bouton():
-    """Vérifie si le bouton de vidage est pressé"""
-    global courrier_present
-    
-    # Bouton pressé = LOW (pull-up)
-    if GPIO.input(BOUTON_VIDAGE) == GPIO.LOW:
-        time.sleep(0.05)  # Anti-rebond
-        if GPIO.input(BOUTON_VIDAGE) == GPIO.LOW:  # Confirmation
-            with lock:
-                if courrier_present:
-                    courrier_present = False
-                    update_leds()
-                    update_mailbox_state()
-                    print("Bouton pressé - Boîte vidée")
-                    
-                    # Petit bip de confirmation
-                    GPIO.output(BUZZER, 1)
-                    time.sleep(0.1)
-                    GPIO.output(BUZZER, 0)
-            
-            time.sleep(0.5)  # Éviter les pressions multiples
-
 def save_new_mail():
     """Sauvegarde un nouveau courrier dans la BDD et met à jour l'état de la Mailbox à PLEIN (1)."""
     # REMARQUE: Assurez-vous que get_db est importé de BDD.py
@@ -343,6 +287,64 @@ load_initial_status()
 # Ceci permet de reprendre l'état en cas de redémarrage du serveur !
 courrier_present = load_initial_status()
 print(f"Statut initial de la boîte (lu de la BDD): Courrier {'présent' if courrier_present else 'absent'}")
+
+def check_capteur():
+    """Vérifie le capteur et détecte les nouveaux courriers"""
+    global courrier_present
+    
+    distance = mesure_distance()
+    
+    # 🚨 DÉBOGAGE : Affiche la distance lue par le capteur
+    if distance is not None:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Distance mesurée: {distance} cm. Seuil: {seuil} cm.")
+    else:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Erreur de mesure de distance.")
+    # FIN DÉBOGAGE
+    
+    if distance is None:
+        return
+    
+    # Détection nouveau courrier
+    if distance < seuil and not courrier_present:
+        # ... (le reste du code est correct : lock, update_leds, buzzer, save_new_mail)
+        with lock:
+            courrier_present = True
+            update_leds()
+            
+            # Activer le buzzer
+            GPIO.output(BUZZER, 1)
+            time.sleep(n)
+            GPIO.output(BUZZER, 0)
+            
+            print("Nouveau courrier détecté et enregistré !")
+            
+            # Sauvegarder dans la BDD
+            save_new_mail()
+
+def check_bouton():
+    """Vérifie l'état du bouton physique et vide la boîte si pressé."""
+    global courrier_present
+    
+    # 🚨 Logique de détection du bouton (méthode de lecture directe)
+    if GPIO.input(BOUTON) == GPIO.LOW: # BOUTON = 18. LOW = bouton pressé
+        
+        # Anti-rebond (debounce) simple
+        time.sleep(0.05) 
+        if GPIO.input(BOUTON) == GPIO.LOW:
+            
+            with lock:
+                if courrier_present:
+                    # 1. Réinitialiser la variable globale et la BDD
+                    update_mailbox_state(False) # Met l'état à False / 0
+                    
+                    # 2. Mettre à jour les LEDs (partie physique)
+                    update_leds()
+                    
+                    print("🔔 Bouton physique pressé : Boîte marquée comme vidée.")
+            
+            # Attendre que le bouton soit relâché pour éviter les détections multiples
+            while GPIO.input(BOUTON) == GPIO.LOW:
+                time.sleep(0.1)
 # ==================== ROUTES API ====================
 @app.get("/api/health")
 async def health_check():
