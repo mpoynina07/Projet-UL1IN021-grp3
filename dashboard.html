@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MailBox - Tableau de bord</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .settings-icon {
+            background: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            transition: transform 0.3s ease;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .settings-icon:hover {
+            transform: rotate(30deg);
+        }
+
+        /* Cartes */
+        .dashboard-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Statut boîte vide */
+        .status-section {
+            text-align: center;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .status-section.empty {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .status-section.has-mail {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            animation: pulse 2s infinite;
+        }
+
+        h1 {
+            font-size: 18px;
+            color: #155724;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .activity-section h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .activity-list {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3f4;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .time {
+            color: #888;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .new-mail {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .separator {
+            height: 1px;
+            background: #e1e5e9;
+            margin: 25px 0;
+        }
+
+        .history-btn {
+            width: 100%;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .history-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .dashboard-card {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: slideUp 0.6s ease forwards;
+        }
+
+        .activity-item {
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        .activity-item:nth-child(1) { animation-delay: 0.1s; }
+        .activity-item:nth-child(2) { animation-delay: 0.2s; }
+        .activity-item:nth-child(3) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="header">
+            <div class="logo">MailBox</div>
+            <a href="/settings" class="settings-icon">⚙️</a>
+        </header>
+
+        <section id="statusSection" class="dashboard-card status-section empty">
+            <h1>Chargement du statut...</h1>
+        </section>
+
+        <section class="dashboard-card activity-section">
+            <h1>Activité Récente</h1>
+            <ul id="activityList" class="activity-list">
+                <p id="emptyState" style="text-align: center; color: #999;">Chargement...</p>
+            </ul>
+        </section>
+
+        <a href="/history" class="nav-link">Historique des courriers</a>
+    </div>
+
+    <script src="/api.js"></script> 
+    
+    <script>
+        // Fonctions d'aide (déplacées en haut pour clarté)
+        function updateStatus(status) {
+            const statusSection = document.getElementById('statusSection');
+            
+            if (status.has_mail) {
+                statusSection.className = 'dashboard-card status-section full';
+                statusSection.innerHTML = `
+                    <h1>⚠️ Nouveau courrier !</h1>
+                    <h2>✉️</h2>
+                    <p style="color: #dc3545; margin-top: 10px; font-size: 14px;">
+                        Dernière vérification: ${formatDate(status.last_check)}
+                    </p>
+                    <button onclick="emptyMailbox()" style="
+                        margin-top: 15px;
+                        background: #dc3545;
+                        color: white;
+                        border: none;
+                        display: inline-block;
+                        padding: 8px 15px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 12px;
+                    ">Marquer comme vidée</button>
+                `;
+            } else {
+                statusSection.className = 'dashboard-card status-section empty';
+                statusSection.innerHTML = `
+                    <h1>✅ Boîte aux lettres vide</h1>
+                    <h2>📭</h2>
+                    <p style="color: #155724; margin-top: 10px; font-size: 14px;">
+                        Aucun nouveau courrier
+                    </p>
+                `;
+            }
+        }
+
+        function updateRecentActivity(activities) {
+            const activityList = document.getElementById('activityList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (activities && activities.length > 0) {
+                if (emptyState) emptyState.remove();
+                
+                activityList.innerHTML = activities.map(mail => `
+                    <li class="activity-item">
+                        <span class="time">${formatDate(mail.heure_arrivee)}</span>
+                        ${mail.objet || 'Courrier non identifié'}
+                    </li>
+                `).join('');
+            } else {
+                 activityList.innerHTML = `<p id="emptyState" style="text-align: center; color: #999;">Historique vide.</p>`;
+            }
+        }
+
+        // Fonction pour vider la boîte
+        async function emptyMailbox() {
+            if (confirm('Marquer la boîte comme vidée ?')) {
+                const result = await MailBoxAPI.emptyMailbox();
+                if (result.success) {
+                    loadDashboardData(); // Recharger les données
+                } else {
+                    alert("Erreur lors du vidage de la boîte.");
+                }
+            }
+        }
+
+        // Fonction principale de chargement
+        async function loadDashboardData() {
+            const statusResult = await MailBoxAPI.getMailboxStatus();
+            
+            if (statusResult.success === false && !statusResult.has_mail) {
+                 // Si la requête échoue (ex: token invalide), rediriger
+                 window.location.href = '/'; 
+                 return;
+            }
+            
+            // Simuler l'historique pour l'exemple
+            const activities = [
+                 { heure_arrivee: new Date().toISOString(), objet: "Facture énergie" },
+                 { heure_arrivee: new Date(Date.now() - 86400000).toISOString(), objet: "Publicité Supermarché" },
+            ];
+            
+            updateStatus(statusResult);
+            updateRecentActivity(activities);
+        }
+        
+        // Exécution au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 🚨 VERIFICATION DE SECURITE CRUCIALE 🚨
+            if (!getAuthToken()) { // <-- La fonction getAuthToken est maintenant disponible via api.js
+                window.location.href = '/'; // Redirige vers la page de connexion
+                return; // Stoppe l'exécution
+            }
+            
+            loadDashboardData();
+        });
+    </script>
+</body>
+</html>

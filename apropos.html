@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MailBox - À propos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .about-container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-btn {
+            background: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            text-decoration: none;
+            color: #333;
+            margin-right: 15px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        /* Carte */
+        .about-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        .about-text {
+            color: #555;
+            line-height: 1.6;
+            font-size: 16px;
+            text-align: justify;
+        }
+
+        /* Animation */
+        .about-card {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: slideUp 0.6s ease forwards;
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="about-container">
+        <!-- Header -->
+        <div class="header">
+            <a href="/settings" class="back-btn">←</a>
+            <div class="page-title">À propos</div>
+        </div>
+
+        <!-- Carte à propos -->
+        <div class="about-card">
+            <h1>À propos de</h1>
+
+            <div class="about-text">
+                MailBox transforme votre boîte aux lettres traditionnelle en un assistant intelligent. Notre application vous notifie en temps réel dès qu'un courrier est déposé, vous permettant de consulter l'état de votre boîte à distance et d'annoter numériquement chaque lettre pour un archivage simplifié. Développée dans le cadre du projet universitaire LU11N021 avec Raspberry Pi, cette solution connecte votre quotidien physique à votre environnement numérique pour vous faire gagner du temps et de la sérénité.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Animation d'entrée
+        document.addEventListener('DOMContentLoaded', function() {
+            const card = document.querySelector('.about-card');
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    </script>
+    <script src="/api.js"></script>
+</body>
+</html>

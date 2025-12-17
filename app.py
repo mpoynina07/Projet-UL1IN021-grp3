@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, List
 import RPi.GPIO as GPIO
@@ -11,7 +13,7 @@ import os
 import uvicorn
 
 app = FastAPI(
-    title="MailBox API",
+    title="Smart MailBox API",
     description="API pour la boîte aux lettres intelligente",
     version="1.0.0"
 )
@@ -19,13 +21,58 @@ app = FastAPI(
 # ==================== CONFIGURATION CORS ====================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En développement, en production restreindre
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ==================== MODÈLES PYDANTIC ====================
+# ==================== SERVIR LES PAGES WEB ====================
+app.mount("/static", StaticFiles(directory="static"), name="static")
+@app.get("/")
+async def serve_login():
+    return FileResponse("static/login.html")
+
+@app.get("/dashboard")
+async def serve_dashboard():
+    return FileResponse("static/dashboard.html")
+
+@app.get("/history")
+async def serve_history():
+    return FileResponse("static/history.html")
+
+@app.get("/signup")
+async def serve_signup():
+    return FileResponse("static/signup.html")
+
+@app.get("/settings")
+async def serve_settings():
+    return FileResponse("static/settings.html")
+
+@app.get("/updatepwd")
+async def serve_updatepwd():
+    return FileResponse("static/updatepwd.html")
+# ==================== API ENDPOINTS ====================
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "service": "MailBox", "timestamp": "2024-01-01"}
+
+@app.get("/api/mail-status")
+def mail_status():
+    return {
+        "has_mail": False,
+        "led": "green",
+        "last_check": "2024-01-01T12:00:00"
+    }
+
+
+
+@app.post("/api/empty-mailbox")
+def empty_mailbox():
+    return {"success": True, "message": "Boîte vidée"}
+
+# ==================== MODÈLES ====================
 class UserLogin(BaseModel):
     username: str
     password: str
@@ -34,28 +81,23 @@ class UserRegister(BaseModel):
     username: str
     password: str
 
-class MailUpdate(BaseModel):
-    objet: str
-
 class SearchFilters(BaseModel):
     objet: Optional[str] = None
     date_from: Optional[str] = None
     date_to: Optional[str] = None
 
 # ==================== CONFIGURATION GPIO ====================
-ULTRA = 5        # Pin pour echo
-BUZZER = 24      # Pin buzzer
-LED_ROUGE = 22   # Pin LED rouge
-LED_VERTE = 27   # Pin LED verte
-BOUTON_VIDAGE = 17  # Pin pour le bouton de vidage
+ULTRA = 5
+BUZZER = 24
+LED_ROUGE = 22
+LED_VERTE = 27
+BOUTON_VIDAGE = 18
 
-seuil = 15       # Seuil en cm
-n = 0.2          # Durée buzzer
+seuil = 15
+n = 0.2
 
-# Configuration BDD
 DB_PATH = "mailbox.db"
 
-# Initialisation GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(ULTRA, GPIO.OUT)
 GPIO.setup(LED_ROUGE, GPIO.OUT)
@@ -63,10 +105,10 @@ GPIO.setup(LED_VERTE, GPIO.OUT)
 GPIO.setup(BUZZER, GPIO.OUT)
 GPIO.setup(BOUTON_VIDAGE, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-# Variables globales
 courrier_present = False
 lock = threading.Lock()
 
+# ... (RESTE DE VOTRE CODE EXISTANT ICI - gardez toutes vos fonctions BDD, capteur, etc.) ...
 # ==================== FONCTIONS BDD ====================
 def get_db():
     """Connexion à la base de données"""
@@ -367,7 +409,22 @@ async def search_mail(filters: SearchFilters):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+        
+import os
+from pathlib import Path
 
+# Obtenez le chemin absolu
+BASE_DIR = Path(__file__).parent
+STATIC_DIR = BASE_DIR / "static"
+
+# Puis utilisez le chemin complet
+@app.get("/api.js")
+def api_js():
+    file_path = STATIC_DIR / "api.js"
+    print(f"Tentative de servir: {file_path}")  # Pour debug
+    print(f"Fichier existe: {file_path.exists()}")  # Pour debug
+    return FileResponse(str(file_path))
+    
 @app.post("/api/empty-mailbox")
 async def empty_mailbox():
     """Marque la boîte comme vidée via l'API"""
@@ -395,49 +452,79 @@ async def empty_mailbox():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/login")
-async def login(user: UserLogin):
-    """Authentification utilisateur"""
+# app.py
+# app.py (Ajoutez ceci n'importe où dans la section API ENDPOINTS)
+@app.get("/api/debug-user/{username}")
+def debug_user(username: str):
+    """
+    Endpoint temporaire pour vérifier ce qui est enregistré dans la BDD pour un utilisateur.
+    NE DOIT JAMAIS ÊTRE UTILISÉ EN PRODUCTION.
+    """
     try:
         conn = get_db()
         cursor = conn.cursor()
         
-        cursor.execute("""
-            SELECT * FROM Utilisateur 
-            WHERE nom_utilisateur = ? AND mot_de_passe = ?
-        """, (user.username, user.password))
-        
+        username_clean = username.strip()
+
+        cursor.execute("SELECT nom_utilisateur, mot_de_passe FROM Utilisateur WHERE nom_utilisateur = ?", (username_clean,))
         user_data = cursor.fetchone()
+        
         conn.close()
         
         if user_data:
             return {
-                "success": True,
-                "username": user_data["nom_utilisateur"],
-                "mailbox_id": user_data["id_Mailbox"]
+                "success": True, 
+                "message": "Utilisateur trouvé. Détails ci-dessous:",
+                "username_saisi": username,
+                "username_en_bdd": user_data[0], 
+                "password_en_bdd": user_data[1] 
             }
-        else:
+        return {"success": False, "message": f"Utilisateur '{username}' non trouvé dans la BDD."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur interne de débogage: {str(e)}")
+
+@app.post("/api/login")
+async def login(user: UserLogin):
+    """Authentification utilisateur (Version durcie)"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        username_clean = user.username.strip()
+        password_clean = user.password.strip()
+
+        cursor.execute("""
+            SELECT nom_utilisateur, id_Mailbox FROM Utilisateur 
+            WHERE nom_utilisateur = ? AND mot_de_passe = ?
+        """, (username_clean, password_clean)) # UTILISER les variables nettoyées
+        
+        user_data = cursor.fetchone()
+        
+        if not user_data:
             raise HTTPException(
                 status_code=401,
-                detail="Nom d'utilisateur ou mot de passe incorrect"
+                detail="Nom d'utilisateur ou mot de passe incorrects"
             )
-            
+        
+        return {"success": True, "token": "simulated_token", "username": user_data[0]}
+        
     except Exception as e:
         if isinstance(e, HTTPException):
             raise e
-        raise HTTPException(status_code=500, detail=str(e))
-
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur lors de la connexion.")
 @app.post("/api/register")
 async def register(user: UserRegister):
     """Inscription d'un nouvel utilisateur"""
     try:
-        if len(user.username) > 30:
+        username_clean = user.username.strip()
+        password_clean = user.password.strip()
+        if len(username_clean) > 30:
             raise HTTPException(
                 status_code=400,
                 detail="Nom d'utilisateur trop long (max 30 caractères)"
             )
         
-        if len(user.password) > 20:
+        if len(password_clean) > 20:
             raise HTTPException(
                 status_code=400,
                 detail="Mot de passe trop long (max 20 caractères)"
@@ -449,7 +536,7 @@ async def register(user: UserRegister):
         # Vérifier si l'utilisateur existe déjà
         cursor.execute(
             "SELECT * FROM Utilisateur WHERE nom_utilisateur = ?", 
-            (user.username,)
+            (username_clean,)
         )
         if cursor.fetchone():
             conn.close()
@@ -462,7 +549,7 @@ async def register(user: UserRegister):
         cursor.execute("""
             INSERT INTO Utilisateur (nom_utilisateur, mot_de_passe, id_Mailbox)
             VALUES (?, ?, 1)
-        """, (user.username, user.password))
+        """, (username_clean, password_clean))
         
         conn.commit()
         conn.close()
@@ -498,79 +585,11 @@ def thread_bouton():
             time.sleep(1)
 
 # ==================== DÉMARRAGE ====================
-def start_server():
-    """Fonction de démarrage du serveur"""
+if __name__ == "__main__":
     try:
-        # Initialiser la base de données
-        print("Initialisation...")
-        init_db()
-        
-        # Initialiser les LEDs
-        update_leds()
-        print("LEDs initialisées")
-        
-        # Démarrer les threads
-        print("Démarrage des threads...")
-        thread1 = threading.Thread(target=thread_capteur, daemon=True)
-        thread2 = threading.Thread(target=thread_bouton, daemon=True)
-        thread1.start()
-        thread2.start()
-        
-        # Démarrer le serveur Uvicorn
-        print(f"\n{'='*50}")
-        print("API FastAPI démarrée sur http://0.0.0.0:8000")
-        print("Documentation interactive:")
-        print("  • Swagger UI: http://0.0.0.0:8000/docs")
-        print("  • ReDoc:      http://0.0.0.0:8000/redoc")
-        print(f"{'='*50}")
-        print("\nAppuyez sur Ctrl+C pour arrêter...")
-        
-        uvicorn.run(
-            app, 
-            host="0.0.0.0", 
-            port=8000,
-            log_level="info"
-        )
-        
+        print("Démarrage du serveur...")
+        uvicorn.run(app, host="0.0.0.0", port=8000)
     except KeyboardInterrupt:
-        print("\nArrêt du programme...")
-    except Exception as e:
-        print(f"Erreur critique: {e}")
+        print("\nArrêt...")
     finally:
         GPIO.cleanup()
-        print("GPIO nettoyé. Programme terminé.")
-
-if __name__ == "__main__":
-    start_server()
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-
-
-# Servir les fichiers statiques (HTML, CSS, JS)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Route pour la page d'accueil (login)
-@app.get("/")
-async def serve_login():
-    return FileResponse("static/login.html")
-
-# Routes pour les autres pages
-@app.get("/dashboard")
-async def serve_dashboard():
-    return FileResponse("static/dashboard.html")
-
-@app.get("/history")
-async def serve_history():
-    return FileResponse("static/history.html")
-
-@app.get("/signup")
-async def serve_signup():
-    return FileResponse("static/signup.html")
-
-@app.get("/settings")
-async def serve_settings():
-    return FileResponse("static/settings.html")
-
-@app.get("/updatepwd")
-async def serve_updatepwd():
-    return FileResponse("static/updatepwd.html")

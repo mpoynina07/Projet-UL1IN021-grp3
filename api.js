@@ -1,5 +1,5 @@
-const API_BASE_URL = 'http://172.20.10.13:8000';  // IP du Raspberry Pi
 
+const API_BASE_URL = 'http://172.20.10.13:8000';
 class MailBoxAPI {
     // ==================== AUTHENTIFICATION ====================
     
@@ -148,4 +148,24 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('❌ Impossible de se connecter à l\'API');
         alert('⚠️ Impossible de se connecter au serveur. Vérifiez que le Raspberry Pi est allumé et connecté au réseau.');
     }
+// api.js (À AJOUTER OU VÉRIFIER À LA FIN DU FICHIER)
+
+// Fonctions utilitaires d'authentification pour gérer le jeton
+function setAuthToken(token) {
+    try {
+        localStorage.setItem('authToken', token);
+    } catch (e) {
+        console.error("Erreur de LocalStorage (setAuthToken):", e);
+    }
+}
+
+function getAuthToken() {
+    try {
+        return localStorage.getItem('authToken');
+    } catch (e) {
+        console.error("Erreur de LocalStorage (getAuthToken):", e);
+        return null;
+    }
+}
+
 });
