@@ -86,7 +86,23 @@ def ajouter_utilisateur(nom, mot_de_passe, id_mailbox):
     
 # ... [Les autres fonctions BDD (authentifier_utilisateur, ajouter_courrier, etc.) sont ici si vous les avez] ...
 
+# BDD.py (À ajouter ou modifier vers la fin)
 
+def set_etat_mailbox(id_mailbox, nouvel_etat):
+    """Met à jour l'état de la boîte aux lettres (0 = vide, 1 = pleine)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Utilise un UPDATE pour garantir l'atomicité
+    cursor.execute("""
+        UPDATE Mailbox SET etat = ? WHERE id_Mailbox = ?
+    """, (nouvel_etat, id_mailbox))
+    conn.commit()
+    conn.close()
+
+def vider_mailbox(id_mailbox):
+    """Marque la boîte comme vide (etat = 0)."""
+    set_etat_mailbox(id_mailbox, 0)
+    # L'API utilisera cette fonction pour vider la boîte.
 # ==================== EXÉCUTION ====================
 if __name__ == "__main__":
     
