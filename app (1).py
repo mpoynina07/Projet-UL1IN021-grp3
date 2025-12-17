@@ -271,20 +271,19 @@ def check_bouton():
             time.sleep(0.5)  # Éviter les pressions multiples
 
 def save_new_mail():
-    """Sauvegarde un nouveau courrier dans la BDD"""
+    """Sauvegarde un nouveau courrier dans la BDD et met à jour l'état de la Mailbox à PLEIN (1)."""
+    # REMARQUE: Assurez-vous que get_db est importé de BDD.py
     try:
         conn = get_db()
         cursor = conn.cursor()
         
         heure = datetime.now().isoformat()
         
-        cursor.execute("""
-            INSERT INTO Courrier (heure_arrivee) 
-            VALUES (?)
-        """, (heure,))
-        
+        # 1. Insertion du nouveau courrier dans la table 'Courrier'
+        cursor.execute("INSERT INTO Courrier (heure_arrivee) VALUES (?)", (heure,))
         courrier_id = cursor.lastrowid
         
+        # 2. Mise à jour de la table 'Mailbox'
         cursor.execute("""
             UPDATE Mailbox 
             SET etat = 1, id_courrier = ?
@@ -294,19 +293,26 @@ def save_new_mail():
         conn.commit()
         conn.close()
         
-        print(f"Courrier enregistré - ID: {courrier_id}")
+        print(f"✅ Courrier enregistré en BDD - ID: {courrier_id}. État Mailbox mis à jour à PLEIN (1).")
         
     except Exception as e:
-        print(f"Erreur sauvegarde courrier: {e}")
-
+        print(f"❌ Erreur lors de la sauvegarde du courrier: {e}")
 def update_mailbox_state():
-    """Met à jour l'état de la mailbox dans la BDD"""
+    """
+    Met à jour l'état de la mailbox dans la BDD.
+    Cette fonction est utilisée pour marquer la boîte comme VIDÉE (etat = 0).
+    """
+    global courrier_present # Nécessaire pour déterminer l'état actuel
+    
+    # REMARQUE: Assurez-vous que get_db est importé de BDD.py
     try:
         conn = get_db()
         cursor = conn.cursor()
         
-        etat = 1 if courrier_present else 0
+        # L'état est 0 si la variable globale est False (suite au vidage par l'API)
+        etat = 1 if courrier_present else 0 
         
+        # Mise à jour de la table 'Mailbox' : on vide (etat=0) et on retire l'ID du dernier courrier.
         cursor.execute("""
             UPDATE Mailbox 
             SET etat = ?, id_courrier = NULL
@@ -316,25 +322,26 @@ def update_mailbox_state():
         conn.commit()
         conn.close()
         
+        print(f"✅ État Mailbox mis à jour en BDD à {'PLEIN (1)' if etat == 1 else 'VIDE (0)'}.")
+        
     except Exception as e:
-        print(f"Erreur mise à jour état: {e}")
-def get_initial_status():
-    conn = connect() # Assurez-vous que 'connect()' est bien votre fonction de connexion BDD
-    cursor = conn.cursor()
-    # Lit l'état actuel de la boîte (colonne 'courrier_present')
-    cursor.execute("SELECT courrier_present FROM Mailbox_Status WHERE id=1")
-    result = cursor.fetchone()
-    conn.close()
-    
-    # Si la table existe, renvoie le statut, sinon renvoie False par défaut
-    if result:
-        # La colonne courrier_present est stockée comme INTEGER (0 ou 1)
-        return bool(result[0]) 
-    return False
+        print(f"❌ Erreur lors de la mise à jour de l'état en BDD: {e}")
+def load_initial_status():
+    global courrier_present
+    try:
+        # get_etat_mailbox(id) retourne 0 (vide) ou 1 (plein)
+        etat_int = get_etat_mailbox(MAILBOX_ID) 
+        # On convertit 0/1 en False/True pour la variable globale
+        courrier_present = bool(etat_int) 
+        print(f"Statut initial de la boîte (lu de la BDD): Courrier {'présent' if courrier_present else 'absent'} (état: {etat_int})")
+    except Exception as e:
+        print(f"ERREUR BDD lors de l'initialisation: {e}. Statut par défaut: {courrier_present}")
+
+load_initial_status()
 
 # 🚨 Mise à jour de la variable globale au démarrage
 # Ceci permet de reprendre l'état en cas de redémarrage du serveur !
-courrier_present = get_initial_status()
+courrier_present = load_initial_status()
 print(f"Statut initial de la boîte (lu de la BDD): Courrier {'présent' if courrier_present else 'absent'}")
 # ==================== ROUTES API ====================
 @app.get("/api/health")
@@ -457,14 +464,20 @@ def api_js():
     
 @app.post("/api/empty-mailbox")
 async def empty_mailbox():
-    """Marque la boîte comme vidée via l'API"""
-    global courrier_present
+    """Marque la boîte comme vidée via l'API, synchronise l'état global et BDD."""
+    global courrier_present # On doit modifier l'état global du serveur
     
     try:
-        with lock:
+        # On utilise le verrou (lock) pour éviter que le thread capteur ne s'exécute en même temps.
+        with lock: 
             if courrier_present:
+                # 1. Mise à jour de la variable globale (permet la prochaine détection par le capteur)
                 courrier_present = False
+                
+                # 2. Mise à jour des LEDs (partie physique)
                 update_leds()
+                
+                # 3. Mise à jour de la BDD (l'état passe à 0 / VIDE)
                 update_mailbox_state()
                 
                 print("Boîte vidée via API")
@@ -474,14 +487,18 @@ async def empty_mailbox():
                     "message": "Boîte marquée comme vidée"
                 }
             else:
+                # Si le courrier_present était déjà False, on confirme le succès de l'opération
                 return {
-                    "success": False,
+                    "success": True,
                     "message": "La boîte est déjà vide"
                 }
-                
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
+    except Exception as e:
+        # Renvoie une erreur FastAPI standard
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erreur interne lors du vidage: {str(e)}"
+        )
 # app.py
 # app.py (Ajoutez ceci n'importe où dans la section API ENDPOINTS)
 @app.get("/api/debug-user/{username}")
@@ -593,15 +610,17 @@ async def register(user: UserRegister):
 
 # ==================== THREADS ====================
 def thread_capteur():
-    """Thread pour surveiller le capteur"""
-    print("Thread capteur démarré")
+    """Thread pour surveiller le capteur et exécuter la vérification toutes les secondes."""
+    print("Thread capteur démarré et actif.")
     while True:
         try:
+            # check_capteur() contient la logique de mesure de distance et d'appel à save_new_mail()
             check_capteur()
-            time.sleep(1)
+            time.sleep(1) # Vérifie l'état du capteur toutes les 1 seconde
         except Exception as e:
-            print(f"Erreur thread capteur: {e}")
-            time.sleep(5)
+            # Gère les erreurs sans arrêter le serveur, mais en mettant le thread en pause
+            print(f"❌ Erreur critique dans thread capteur. Le thread va se mettre en pause. Erreur: {e}")
+            time.sleep(5) # Pause de 5 secondes avant de réessayer
 
 def thread_bouton():
     """Thread pour surveiller le bouton"""
@@ -621,7 +640,7 @@ def thread_bouton():
 async def startup_event():
     """Démarre l'initialisation de la BDD et les threads au lancement de l'application."""
     print("Initialisation de la base de données...")
-    init_db() # 1. Initialisation de la BDD
+    init_BDD() # 1. Initialisation de la BDD
     
     print("Démarrage des threads de surveillance des capteurs en arrière-plan...")
     
