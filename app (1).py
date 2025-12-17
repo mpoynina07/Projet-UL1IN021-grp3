@@ -313,7 +313,24 @@ def update_mailbox_state():
         
     except Exception as e:
         print(f"Erreur mise à jour état: {e}")
+def get_initial_status():
+    conn = connect() # Assurez-vous que 'connect()' est bien votre fonction de connexion BDD
+    cursor = conn.cursor()
+    # Lit l'état actuel de la boîte (colonne 'courrier_present')
+    cursor.execute("SELECT courrier_present FROM Mailbox_Status WHERE id=1")
+    result = cursor.fetchone()
+    conn.close()
+    
+    # Si la table existe, renvoie le statut, sinon renvoie False par défaut
+    if result:
+        # La colonne courrier_present est stockée comme INTEGER (0 ou 1)
+        return bool(result[0]) 
+    return False
 
+# 🚨 Mise à jour de la variable globale au démarrage
+# Ceci permet de reprendre l'état en cas de redémarrage du serveur !
+courrier_present = get_initial_status()
+print(
 # ==================== ROUTES API ====================
 @app.get("/api/health")
 async def health_check():
