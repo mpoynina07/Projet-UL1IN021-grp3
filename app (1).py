@@ -11,6 +11,7 @@ from datetime import datetime
 import sqlite3
 import os
 import uvicorn
+from BDD import get_connection, init_BDD, get_etat_mailbox, set_etat_mailbox, ajouter_courrier
 
 app = FastAPI(
     title="Smart MailBox API",
@@ -95,8 +96,12 @@ BOUTON_VIDAGE = 18
 
 seuil = 15
 n = 0.2
-
+MAILBOX_ID = 1 # ID de la boîte aux lettres par défaut (à utiliser dans les appels BDD)
+seuil = 15 
+courrier_present = False # Variable globale pour l'état (synchro BDD)
+lock = threading.Lock()
 DB_PATH = "mailbox.db"
+
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(ULTRA, GPIO.OUT)
