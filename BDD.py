@@ -98,7 +98,21 @@ def set_etat_mailbox(id_mailbox, nouvel_etat):
     """, (nouvel_etat, id_mailbox))
     conn.commit()
     conn.close()
+# BDD.py
 
+def get_etat_mailbox(id_mailbox):
+    """Renvoie 0 = vide, 1 = pleine."""
+    conn = get_connection() # 🚨 Assurez-vous que cette fonction existe bien dans BDD.py
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT etat FROM Mailbox WHERE id_Mailbox = ?
+    """, (id_mailbox,))
+
+    etat = cursor.fetchone()
+    conn.close()
+    # Renvoie 0 ou 1, ou une erreur si la boîte n'existe pas
+    return etat[0] if etat else 0
 def vider_mailbox(id_mailbox):
     """Marque la boîte comme vide (etat = 0)."""
     set_etat_mailbox(id_mailbox, 0)
