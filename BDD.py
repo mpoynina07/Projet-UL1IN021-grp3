@@ -28,7 +28,7 @@ def init_BDD():
     # TABLE MAILBOX
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Mailbox (
-        id_Mailbox INTEGER PRIMARY KEY, -- Rétabli en PK simple pour garantir l'ID 1
+        id_Mailbox INTEGER PRIMARY KEY,
         taille INTEGER DEFAULT 0,
         etat INTEGER DEFAULT 0, -- 0=vide, 1=plein
         adresse VARCHAR(50),
@@ -121,13 +121,9 @@ def modifier_objet_courrier(id_courrier, nouvel_objet):
     conn.close()
 
 def historique_courrier(id_mailbox):
-    """Retourne tous les courriers liés à cette Mailbox (ne dépend pas de id_courrier dans Mailbox)."""
+    """Retourne tous les courriers liés à cette Mailbox."""
     conn = get_connection()
     cursor = conn.cursor()
-
-    # NOTE: Cette requête originale ne fonctionnera que si le dernier courrier est toujours lié à Mailbox.
-    # Pour l'historique complet, vous avez besoin d'une table intermédiaire (non présente) ou de tous les courriers.
-    # Je garde votre requête, mais la modifie pour qu'elle soit plus logique (join sur ID si possible, ou juste SELECT * FROM Courrier)
     
     cursor.execute("""
         SELECT id_courrier, objet, heure_arrivee
@@ -148,7 +144,7 @@ def rechercher_courrier(id_mailbox, mot_cle):
         FROM Courrier
         WHERE Courrier.objet LIKE ?
         ORDER BY Courrier.heure_arrivee DESC
-    """, (f"%{mot_cle}%",)) # La jointure n'est pas nécessaire ici
+    """, (f"%{mot_cle}%",))
 
     resultats = cursor.fetchall()
     conn.close()
