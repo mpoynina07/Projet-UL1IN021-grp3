@@ -1,31 +1,20 @@
-/mon_projet_mailbox
+/RENDU PROJET
 │
-├── /site_web                  # Dossier pour le site web
-│   ├── /static                # Contient les fichiers statiques (images, JS, CSS)
-│   ├── /templates             # Contient les pages HTML du site
-│   ├── index.html             # Page d'accueil
+├── /static                 # Dossier pour le site web
+│   ├── apropos.html             # Page d'accueil
 │   ├── login.html             # Page de connexion
 │   ├── signup.html            # Page d'inscription
 │   ├── settings.html          # Page des paramètres
 │   ├── dashboard.html         # Page du tableau de bord
 │   ├── history.html           # Page de l'historique
-│   ├── change_password.html   # Page pour changer le mot de passe
-│   └── /scripts               # Scripts JavaScript (API, logique d'interaction)
+│   ├── updatepwd.html   # Page pour changer le mot de passe
+├── app.py
+├── BDD.py
+├── mailbox.db
 │
-├── /api                        # Dossier pour l'API FastAPI (serveur backend)
-│   ├── main.py                 # Fichier principal de l'API FastAPI
-│   ├── BDD.py                  # Fichier contenant les fonctions pour gérer la BDD SQLite
-│   ├── models.py               # Modèles Pydantic (schémas de données)
-│   ├── api.py                  # Routes FastAPI pour l'API
-│   ├── config.py               # Configuration générale de l'API (si nécessaire)
-│   └── requirements.txt        # Dépendances Python (FastAPI, SQLite, etc.)
-│
-├── /raspberry_pi               # Dossier pour les scripts Raspberry Pi
-│   ├── mailbox_sensor.py       # Script pour gérer le capteur de boîte aux lettres
-│   ├── raspberry_api_client.py # Script pour envoyer les données au serveur (API FastAPI)
-│   └── config.py               # Configurations Raspberry Pi (éventuellement, GPIO pins, capteurs)
-│
-└── /docs                       # Documentation du projet
+└── (a modifier)
+
+/docs                       # Documentation du projet
     ├── README.md               # Explication générale du projet
     ├── setup.md                # Guide d'installation et de configuration
     └── api.md                  # Documentation de l'API (endpoints, données, etc.)
