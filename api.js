@@ -1,171 +1,104 @@
+// api.js - Fichier centralisé pour les appels API
 
-const API_BASE_URL = 'http://172.20.10.13:8000';
-class MailBoxAPI {
-    // ==================== AUTHENTIFICATION ====================
+// Gestion du token d'authentification
+function getAuthToken() {
+    return localStorage.getItem('authToken');
+}
+
+function setAuthToken(token) {
+    localStorage.setItem('authToken', token);
+}
+
+function removeAuthToken() {
+    localStorage.removeItem('authToken');
+}
+
+// Fonction pour formater les dates
+function formatDate(dateString) {
+    if (!dateString) return 'Date inconnue';
     
-    static async login(username, password) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Erreur de connexion');
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Erreur login:', error);
-            return { success: false, error: error.message };
-        }
+    try {
+        const date = new Date(dateString);
+        const options = { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return date.toLocaleDateString('fr-FR', options);
+    } catch (e) {
+        return dateString;
     }
+}
 
-    static async register(userData) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData)
-            });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Erreur d\'inscription');
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Erreur register:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // ==================== COURRIERS ====================
+// API Client
+const MailBoxAPI = {
     
-    static async getMailStatus() {
+    // Obtenir le statut de la boîte
+    async getMailboxStatus() {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/mail-status`);
+            const response = await fetch('/api/mail-status', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAuthToken()}`
+                }
+            });
             
             if (!response.ok) {
-                throw new Error('Erreur de statut');
+                throw new Error('Erreur réseau');
             }
             
             return await response.json();
         } catch (error) {
-            console.error('Erreur mail-status:', error);
-            return { success: false, has_mail: false, error: true };
+            console.error('Erreur getMailboxStatus:', error);
+            return { success: false, has_mail: false };
         }
-    }
-
-    static async getMailHistory(limit = 10) {
+    },
+    
+    // Vider la boîte
+    async emptyMailbox() {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/mail-history?limit=${limit}`);
-            
-            if (!response.ok) {
-                throw new Error('Erreur d\'historique');
-            }
-            
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('Erreur mail-history:', error);
-            return { success: false, data: [] };
-        }
-    }
-
-    static async searchMail(filters) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/search-mail`, {
+            const response = await fetch('/api/empty-mailbox', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(filters)
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAuthToken()}`
+                }
             });
             
             if (!response.ok) {
-                throw new Error('Erreur de recherche');
+                throw new Error('Erreur réseau');
             }
             
             return await response.json();
         } catch (error) {
-            console.error('Erreur search:', error);
-            return { success: false, data: [] };
-        }
-    }
-
-    static async emptyMailbox() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/empty-mailbox`, {
-                method: 'POST'
-            });
-            
-            if (!response.ok) {
-                throw new Error('Erreur de vidage');
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Erreur empty mailbox:', error);
+            console.error('Erreur emptyMailbox:', error);
             return { success: false };
         }
-    }
-
-    // ==================== UTILITAIRE ====================
+    },
     
-    static async testConnection() {
+    // Rechercher du courrier (à implémenter côté serveur si nécessaire)
+    async searchMail(filters) {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/health`);
-            return response.ok;
+            const queryParams = new URLSearchParams(filters).toString();
+            const response = await fetch(`/api/search-mail?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getAuthToken()}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Erreur réseau');
+            }
+            
+            return await response.json();
         } catch (error) {
-            return false;
+            console.error('Erreur searchMail:', error);
+            return [];
         }
     }
-}
-
-// Fonctions utilitaires
-function formatDate(dateString) {
-    if (!dateString) return '';
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-// Test de connexion au démarrage
-document.addEventListener('DOMContentLoaded', async function() {
-    const isConnected = await MailBoxAPI.testConnection();
-    
-    if (isConnected) {
-        console.log('✅ Connecté à l\'API FastAPI');
-    } else {
-        console.error('❌ Impossible de se connecter à l\'API');
-        alert('⚠️ Impossible de se connecter au serveur. Vérifiez que le Raspberry Pi est allumé et connecté au réseau.');
-    }
-// api.js (À AJOUTER OU VÉRIFIER À LA FIN DU FICHIER)
-
-// Fonctions utilitaires d'authentification pour gérer le jeton
-function setAuthToken(token) {
-    try {
-        localStorage.setItem('authToken', token);
-    } catch (e) {
-        console.error("Erreur de LocalStorage (setAuthToken):", e);
-    }
-}
-
-function getAuthToken() {
-    try {
-        return localStorage.getItem('authToken');
-    } catch (e) {
-        console.error("Erreur de LocalStorage (getAuthToken):", e);
-        return null;
-    }
-}
-
-});
+};
